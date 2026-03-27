@@ -1,0 +1,28 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Component Dynamic Effects",
+	"Description": "Actor Component for managing dynamic status effects in single-player games.",
+	"Category": "Experimental",
+	"CreatedBy": "Pavel Gornostaev",
+	"CreatedByURL": "https://github.com/Pavreally",
+	"DocsURL": "https://github.com/Pavreally/ComponentDynamicEffects",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "ComponentDynamicEffects",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64",
+				"Android"
+			]
+		}
+	]
+}
