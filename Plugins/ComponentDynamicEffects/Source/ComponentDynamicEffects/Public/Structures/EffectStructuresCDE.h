@@ -92,6 +92,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status Effect", meta = (ToolTip = "Priority used to resolve conflicts when multiple effects interact") )
 	int32 Priority = 0;
 
+	// Effects that this effect blocks from being applied while this effect is active.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status Effect|Blocking")
+	FGameplayTagContainer BlockedEffects;
+	
 	/** Active effects from this list will be replaced when this effect has higher priority. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status Effect|Priority", meta = (ToolTip = "Tags of effects that will be canceled if this effect has higher priority"))
 	FGameplayTagContainer CancelEffectsWithLowerPriority;

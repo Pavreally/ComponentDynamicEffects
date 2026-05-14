@@ -65,11 +65,45 @@ void UActorCDE::InitializeRegisteredEffectsFromAssets()
 {
 	AssetRegisteredEffects.Reset();
 
-	for (const UStatusEffectsDataAssetCDE* EffectAsset : RegisteredEffectAssets)
+	// First, unpack configured collections into the flat runtime registration map.
+	for (const UStatusEffectCollectionDataAssetCDE* Collection : RegisteredEffectCollections)
+	{
+		if (!IsValid(Collection))
+		{
+			UE_LOG(LogComponentDynamicEffects, Warning, TEXT("ActorCDE::InitializeRegisteredEffectsFromAssets - Encountered invalid StatusEffectCollectionDataAssetCDE."));
+			continue;
+		}
+
+		for (const UStatusEffectsDataAssetCDE* EffectAsset : Collection->Effects)
+		{
+			if (!IsValid(EffectAsset))
+			{
+				UE_LOG(LogComponentDynamicEffects, Warning, TEXT("ActorCDE::InitializeRegisteredEffectsFromAssets - Encountered invalid StatusEffectsDataAssetCDE in collection."));
+				continue;
+			}
+
+			const FStatusEffectDefinitionCDE& EffectDefinition = EffectAsset->EffectDefinition;
+			if (!ValidateEffectDefinition(EffectDefinition, TEXT("ActorCDE::InitializeRegisteredEffectsFromAssets"), EffectAsset))
+			{
+				continue;
+			}
+
+			const FGameplayTag EffectTag = EffectDefinition.Data.EffectTag;
+			if (AssetRegisteredEffects.Contains(EffectTag))
+			{
+				UE_LOG(LogComponentDynamicEffects, Warning, TEXT("ActorCDE::InitializeRegisteredEffectsFromAssets - Duplicate asset registration for '%s'. Later asset overrides earlier one."), *EffectTag.ToString());
+			}
+
+			AssetRegisteredEffects.FindOrAdd(EffectTag) = EffectDefinition;
+		}
+	}
+
+	// Then apply any single-effect data assets authorable directly on the component. These override collection entries.
+	for (const UStatusEffectsDataAssetCDE* EffectAsset : RegisteredEffects)
 	{
 		if (!IsValid(EffectAsset))
 		{
-			UE_LOG(LogComponentDynamicEffects, Warning, TEXT("ActorCDE::InitializeRegisteredEffectsFromAssets - Encountered invalid StatusEffectsDataAsset."));
+			UE_LOG(LogComponentDynamicEffects, Warning, TEXT("ActorCDE::InitializeRegisteredEffectsFromAssets - Encountered invalid StatusEffectsDataAssetCDE on component."));
 			continue;
 		}
 
@@ -82,19 +116,20 @@ void UActorCDE::InitializeRegisteredEffectsFromAssets()
 		const FGameplayTag EffectTag = EffectDefinition.Data.EffectTag;
 		if (AssetRegisteredEffects.Contains(EffectTag))
 		{
-			UE_LOG(LogComponentDynamicEffects, Warning, TEXT("ActorCDE::InitializeRegisteredEffectsFromAssets - Duplicate asset registration for '%s'. Later asset overrides earlier one."), *EffectTag.ToString());
+			UE_LOG(LogComponentDynamicEffects, Warning, TEXT("ActorCDE::InitializeRegisteredEffectsFromAssets - Component registration overrides asset-backed effect '%s'."), *EffectTag.ToString());
 		}
 
 		AssetRegisteredEffects.FindOrAdd(EffectTag) = EffectDefinition;
 	}
 
+	// Clean up suppressed tags that no longer exist in the registration map.
 	TArray<FGameplayTag> SuppressedTags;
-	for (const FGameplayTag& SuppressedTag : SuppressedAssetEffectTags)
+	for (const FGameplayTag &SuppressedTag : SuppressedAssetEffectTags)
 	{
 		SuppressedTags.Add(SuppressedTag);
 	}
 
-	for (const FGameplayTag& SuppressedTag : SuppressedTags)
+	for (const FGameplayTag &SuppressedTag : SuppressedTags)
 	{
 		if (!AssetRegisteredEffects.Contains(SuppressedTag))
 		{
@@ -108,7 +143,7 @@ void UActorCDE::InitializeRegisteredEffectsFromAssets()
 
 void UActorCDE::EnsureRegisteredEffectsInitialized()
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	const bool bIsGameWorld = World && World->IsGameWorld();
 	const bool bNeedsRuntimeRefresh = bIsGameWorld && !bRuntimeRegisteredEffectsRefreshed;
 
@@ -119,14 +154,14 @@ void UActorCDE::EnsureRegisteredEffectsInitialized()
 	}
 }
 
-const FStatusEffectDefinitionCDE* UActorCDE::FindRegisteredEffectDefinition(FGameplayTag EffectTag) const
+const FStatusEffectDefinitionCDE *UActorCDE::FindRegisteredEffectDefinition(FGameplayTag EffectTag) const
 {
 	if (!EffectTag.IsValid())
 	{
 		return nullptr;
 	}
 
-	if (const FStatusEffectDefinitionCDE* RuntimeDefinition = RuntimeRegisteredEffects.Find(EffectTag))
+	if (const FStatusEffectDefinitionCDE *RuntimeDefinition = RuntimeRegisteredEffects.Find(EffectTag))
 	{
 		return RuntimeDefinition;
 	}
@@ -139,9 +174,9 @@ const FStatusEffectDefinitionCDE* UActorCDE::FindRegisteredEffectDefinition(FGam
 	return AssetRegisteredEffects.Find(EffectTag);
 }
 
-bool UActorCDE::ValidateEffectDefinition(const FStatusEffectDefinitionCDE& EffectDefinition, const TCHAR* Context, const UObject* SourceObject) const
+bool UActorCDE::ValidateEffectDefinition(const FStatusEffectDefinitionCDE &EffectDefinition, const TCHAR *Context, const UObject *SourceObject) const
 {
-	const FStatusEffectDataCDE& EffectData = EffectDefinition.Data;
+	const FStatusEffectDataCDE &EffectData = EffectDefinition.Data;
 	const FString SourceName = IsValid(SourceObject) ? GetNameSafe(SourceObject) : TEXT("Runtime");
 
 	if (!EffectData.EffectTag.IsValid())
@@ -175,7 +210,7 @@ bool UActorCDE::ValidateEffectDefinition(const FStatusEffectDefinitionCDE& Effec
 	}
 
 	TSet<FGameplayTag> UniqueModifierTags;
-	for (const FStatusEffectModifierCDE& Modifier : EffectDefinition.Modifiers)
+	for (const FStatusEffectModifierCDE &Modifier : EffectDefinition.Modifiers)
 	{
 		if (!Modifier.ModifierTag.IsValid())
 		{
@@ -199,7 +234,7 @@ void UActorCDE::RebuildRegisteredEffectTags()
 {
 	RegisteredEffectTags.Reset();
 
-	for (const TPair<FGameplayTag, FStatusEffectDefinitionCDE>& Pair : AssetRegisteredEffects)
+	for (const TPair<FGameplayTag, FStatusEffectDefinitionCDE> &Pair : AssetRegisteredEffects)
 	{
 		if (Pair.Key.IsValid() && !SuppressedAssetEffectTags.HasTagExact(Pair.Key))
 		{
@@ -207,7 +242,7 @@ void UActorCDE::RebuildRegisteredEffectTags()
 		}
 	}
 
-	for (const TPair<FGameplayTag, FStatusEffectDefinitionCDE>& Pair : RuntimeRegisteredEffects)
+	for (const TPair<FGameplayTag, FStatusEffectDefinitionCDE> &Pair : RuntimeRegisteredEffects)
 	{
 		if (Pair.Key.IsValid())
 		{

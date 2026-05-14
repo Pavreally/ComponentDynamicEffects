@@ -8,6 +8,7 @@
 #include "Structures/EffectStructuresCDE.h"
 #include "DataAsset/EffectLogicBaseCDE.h"
 #include "DataAsset/StatusEffectsDataAssetCDE.h"
+#include "DataAsset/StatusEffectCollectionDataAssetCDE.h"
 #include "ActorCDE.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEffectAddedCDE, const FActiveStatusEffectCDE&);
@@ -313,15 +314,22 @@ private:
 	void BroadcastEffectRemoved(FGameplayTag EffectTag, EEffectRemoveReason Reason);
 
 	/**
-	 * Hard-referenced effect data assets loaded into the component library during initialization.
-	 * These assets are scanned to populate the registration cache.
+	 * Hard-referenced effect collection assets used for authoring.
+	 * Collections are scanned during initialization and their effects are unpacked into `AssetRegisteredEffects`.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status Effects CDE|Registration", meta = (AllowPrivateAccess = "true"))
-	TArray<TObjectPtr<UStatusEffectsDataAssetCDE>> RegisteredEffectAssets;
+	TArray<TObjectPtr<UStatusEffectCollectionDataAssetCDE>> RegisteredEffectCollections;
 
 	/**
-	 * Registered effect definitions sourced from configured hard references.
-	 * Populated during initialization from `RegisteredEffectAssets`.
+	 * Hard-referenced single-effect data assets authorable directly on the component.
+	 * These asset registrations take priority over collection-sourced definitions.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status Effects CDE|Registration", meta = (AllowPrivateAccess = "true"))
+	TArray<TObjectPtr<UStatusEffectsDataAssetCDE>> RegisteredEffects;
+
+	/**
+	 * Registered effect definitions sourced from configured hard references and direct component registrations.
+	 * Populated during initialization from `RegisteredEffectCollections` and `RegisteredEffects`.
 	 */
 	UPROPERTY(Transient, VisibleInstanceOnly, Category = "Status Effects CDE|Registration")
 	TMap<FGameplayTag, FStatusEffectDefinitionCDE> AssetRegisteredEffects;

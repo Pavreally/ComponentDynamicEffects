@@ -11,8 +11,11 @@ Unreal Engine 5 Actor Component for managing dynamic status effects in single-pl
 ## Latest Updates
 `Experimental`
 
-`Version 1.0.0`
+`Version 1.0.1`
 - Built for Unreal Engine 5.7.4.
+- Added effect collections.
+- Added the ability to block effects with other effects.
+- Maintained backward compatibility with previous versions of the plugin.
 
 ## What it's for
 - Dynamic management of status effects.

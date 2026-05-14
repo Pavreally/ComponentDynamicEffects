@@ -54,6 +54,16 @@ bool UActorCDE::ApplyEffect(FGameplayTag EffectTag, AActor* Instigator)
 {
 	EnsureRegisteredEffectsInitialized();
 
+	// Prevent application if any currently active effect explicitly blocks this effect tag.
+	for (const TPair<FGameplayTag, FActiveStatusEffectCDE>& Pair : ActiveEffects)
+	{
+		const FStatusEffectDataCDE& ActiveData = Pair.Value.Definition.Data;
+		if (ActiveData.BlockedEffects.HasTagExact(EffectTag))
+		{
+			return false;
+		}
+	}
+
 	const FStatusEffectDefinitionCDE* EffectDefinition = FindRegisteredEffectDefinition(EffectTag);
 	if (!EffectDefinition)
 	{
